@@ -1,0 +1,120 @@
+---
+title: "Homework 4"
+author: "Genie Kwak, 205531347"
+date: "2024-03-15"
+output: pdf_document
+---
+# Question 1
+```{r}
+library(synthpop)
+library(diffpriv)
+```
+
+## (a)
+```{r}
+data(SD2011)
+?SD2011
+```
+
+## (b)
+```{r}
+SD2011 <- SD2011[!is.na(SD2011$income), ]
+
+f <- function(X) mean(X)
+
+M <- DPMechGaussian(target = f)
+
+bs <- function(n, var = SD2011$income) {
+  var[sample.int(n = length(var), size = n, replace = TRUE)]
+}
+
+M <- sensitivitySampler(M, oracle = bs, n = nrow(SD2011), m = 10000)
+sens_f <- M@sensitivity
+print(sens_f)
+```
+
+## (c)
+```{r}
+mu <- 0.2
+
+sigma <- sens_f / mu
+print(sigma)
+```
+
+```{r}
+realizations <- replicate(5, {
+  mean_income <- mean(SD2011$income)
+  private_mean <- mean_income + rnorm(1, mean = 0, sd = sigma)
+})
+
+print(realizations)
+```
+
+## (d)
+```{r}
+SD2011 <- SD2011[SD2011$income > 0, ]
+
+f <- function(X) mean(X)
+
+M <- DPMechGaussian(target = f)
+
+bs <- function(n, var = log(SD2011$income)) {
+  var[sample.int(n = length(var), size = n, replace = TRUE)]
+}
+
+M <- sensitivitySampler(M, oracle = bs, n = nrow(SD2011), m = 10000)
+sens_f_log <- M@sensitivity
+print(sens_f_log)
+```
+
+```{r}
+sigma_log <- sens_f_log / mu
+print(sigma_log)
+```
+
+```{r}
+realizations_log <- replicate(5, {
+  mean_log_income <- mean(log(SD2011$income))
+  private_mean_log <- mean_log_income + rnorm(1, mean = 0, sd = sigma_log)
+  exp(private_mean_log)
+})
+
+print(realizations_log)
+```
+
+Overall, based on the observations of the two models, it seems like the log of income is better for differential privacy. 
+
+First, the log of income has a much smaller standard deviation of Gaussian noise compared to mean income which shows us that the log of income model has better data utility. 
+
+Secondly, the five realizations of the log of income are more consistent compared to those of the mean income which means that the log of income model has less variability introduced by the privacy mechanism and has improved reliability of differential privacy results. 
+
+Third, the log of income model has a smaller sensitivity level compared to the income model which shows that the log of income has stronger privacy protection.
+
+Lastly, when adding noise to a variable, the underlying distribution and statistical properties of the data are better preserved when adding the noise to a transformed variable (i.e. log of income) instead of directly adding the noise to the original variable (i.e. income).
+
+
+# Question 2
+## (a)
+```{r}
+SD2011_new <- SD2011[, c("sex", "age", "placesize", "region", "edu", "socprof", "unempdur", "income", "marital")]
+```
+
+```{r}
+sds <- syn(SD2011_new, method = "cart")
+print(sds)
+```
+
+```{r}
+sds_rep <- replicate(5, sds)
+print(sds_rep)
+```
+
+## (b)
+```{r}
+compare(sds, SD2011_new, var = "income")
+```
+Since the pMSE signifies the average squared difference between the observed percentages in the original data and the synthetic data, the very low pMSE indicates that there is a close match between the original and synthetic data sets.
+
+The S_pMSE suggests fitness by providing a relative measure of how well the synthetic data replicates the original percentage. An S_pMSE close to 1 will suggest that there is a relatively good fit between the original and synthetic data sets in terms of percentage distribution. However, since the S_pMSE is greater than 1, we can understand that there is some sort of discrepancy between the original and synthetic data sets.
+
+As a result, the small pMSE value suggests that there's a relatively good match between the original and synthetic data sets in terms of percentage distribution. However, the S_pMSE being greater than 1 suggests that the error in the synthetic data is larger than the mean squared error of the original data which is an indication of some discrepancy between the two data sets. The two data sets have some significant similarities, but require further observation regarding their discrepancies of the S_pMSE.
