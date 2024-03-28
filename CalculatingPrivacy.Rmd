@@ -1,6 +1,6 @@
 ---
-title: "Homework 4"
-author: "Genie Kwak, 205531347"
+title: "Calculating Privacy With Synthpop"
+author: "Genie Kwak"
 date: "2024-03-15"
 output: pdf_document
 ---
